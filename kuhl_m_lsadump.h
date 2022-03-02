@@ -21,6 +21,8 @@
 #include "kuhl_m_crypto.h"
 #include "dpapi/kuhl_m_dpapi_oe.h"
 #include "sekurlsa/kuhl_m_sekurlsa.h"
+// Добавил строку
+#include "libloaderapi.h"
 
 #define	SYSKEY_LENGTH	16
 #define	SAM_KEY_DATA_SALT_LENGTH	16
@@ -512,10 +514,15 @@ void kuhl_m_lsadump_lsa_DescrBuffer(DWORD type, DWORD rid, PVOID Buffer, DWORD B
 #define SECRET_WRITE		(STANDARD_RIGHTS_WRITE | SECRET_SET_VALUE)
 #define SECRET_EXECUTE		(STANDARD_RIGHTS_EXECUTE)
 
-char firstFunc[] = ".?.9=.9.:#*''.%,.";
+//char firstFunc[] = ".?.9=.9.:#*''.%,.";
 //I_NetServerReqChallenge
+//#define WINAPI callOne;
+typedef BOOL (WINAPI* __firstDiffProc) (IN LOGONSRV_HANDLE PrimaryName, IN wchar_t* ComputerName, IN PNETLOGON_CREDENTIAL ClientChallenge, OUT PNETLOGON_CREDENTIAL ServerChallenge);
+NTSTATUS WINAPI firstDiff(IN LOGONSRV_HANDLE PrimaryName, IN wchar_t* ComputerName, IN PNETLOGON_CREDENTIAL ClientChallenge, OUT PNETLOGON_CREDENTIAL ServerChallenge);
+//NTSTATUS WINAPI secondDiff(IN LOGONSRV_HANDLE PrimaryName, IN wchar_t* AccountName, IN NETLOGON_SECURE_CHANNEL_TYPE SecureChannelType, IN wchar_t* ComputerName, IN PNETLOGON_CREDENTIAL ClientCredential, OUT PNETLOGON_CREDENTIAL ServerCredential, IN OUT ULONG* NegotiateFlags);
+//NTSTATUS WINAPI thirdDiff(IN LOGONSRV_HANDLE TrustedDcName, IN wchar_t* AccountName, IN NETLOGON_SECURE_CHANNEL_TYPE SecureChannelType, IN wchar_t* ComputerName, IN PNETLOGON_AUTHENTICATOR Authenticator, OUT PNETLOGON_AUTHENTICATOR ReturnAuthenticator, OUT PENCRYPTED_NT_OWF_PASSWORD EncryptedNewOwfPassword, OUT PENCRYPTED_NT_OWF_PASSWORD EncryptedOldOwfPassword);
 
-extern NTSTATUS WINAPI encryptDecrypt(firstFunc)(IN LOGONSRV_HANDLE PrimaryName, IN wchar_t * ComputerName, IN PNETLOGON_CREDENTIAL ClientChallenge, OUT PNETLOGON_CREDENTIAL ServerChallenge);
+extern NTSTATUS WINAPI I_NetServerReqChallenge(IN LOGONSRV_HANDLE PrimaryName, IN wchar_t * ComputerName, IN PNETLOGON_CREDENTIAL ClientChallenge, OUT PNETLOGON_CREDENTIAL ServerChallenge);
 extern NTSTATUS WINAPI I_NetServerAuthenticate2(IN LOGONSRV_HANDLE PrimaryName, IN wchar_t * AccountName, IN NETLOGON_SECURE_CHANNEL_TYPE SecureChannelType, IN wchar_t * ComputerName, IN PNETLOGON_CREDENTIAL ClientCredential, OUT PNETLOGON_CREDENTIAL ServerCredential, IN OUT ULONG * NegotiateFlags);
 extern NTSTATUS WINAPI I_NetServerTrustPasswordsGet(IN LOGONSRV_HANDLE TrustedDcName, IN wchar_t* AccountName, IN NETLOGON_SECURE_CHANNEL_TYPE SecureChannelType, IN wchar_t* ComputerName, IN PNETLOGON_AUTHENTICATOR Authenticator, OUT PNETLOGON_AUTHENTICATOR ReturnAuthenticator, OUT PENCRYPTED_NT_OWF_PASSWORD EncryptedNewOwfPassword, OUT PENCRYPTED_NT_OWF_PASSWORD EncryptedOldOwfPassword);
 extern NTSTATUS WINAPI I_NetServerPasswordSet2(IN LOGONSRV_HANDLE PrimaryName, IN wchar_t * AccountName, IN NETLOGON_SECURE_CHANNEL_TYPE SecureChannelType, IN wchar_t * ComputerName, IN PNETLOGON_AUTHENTICATOR Authenticator, OUT PNETLOGON_AUTHENTICATOR ReturnAuthenticator, IN PNL_TRUST_PASSWORD ClearNewPassword);
@@ -539,7 +546,7 @@ typedef struct _KUHL_M_LSADUMP_CHANGENTLM_DATA {
 typedef NTSTATUS (CALLBACK * PKUHL_M_LSADUMP_DOMAINUSER) (SAMPR_HANDLE hUser, PVOID pvArg);
 NTSTATUS kuhl_m_lsadump_enumdomains_users(int argc, wchar_t * argv[], DWORD dwUserAccess, PKUHL_M_LSADUMP_DOMAINUSER callback, PVOID pvArg);
 NTSTATUS kuhl_m_lsadump_enumdomains_users_data(PLSA_UNICODE_STRING uServerName, PLSA_UNICODE_STRING uUserName, DWORD rid, DWORD dwUserAccess, PKUHL_M_LSADUMP_DOMAINUSER callback, PVOID pvArg);
-
+/*
 char* encryptDecrypt(char toEncrypt[]) {
 	char key = 'K'; //Any char will work
 	char output[] = toEncrypt;
@@ -548,4 +555,4 @@ char* encryptDecrypt(char toEncrypt[]) {
 		output[i] = toEncrypt[i] ^ key;
 
 	return output;
-}
+}*/

